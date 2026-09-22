@@ -6,12 +6,13 @@ function accept(r){boardRect=r?r.rect:null;if(!r){board=[];for(var i=0;i<30;i++)
 function beginImport(){
 var id=++loadId;if(worker){worker.terminate();worker=null;}invalidate();board=[];corners=null;
 el('edit').hidden=true;frame=null;sourceFrame=null;boardRect=null;el('photo').classList.remove('selecting');el('cropActions').hidden=true;el('cornerHint').textContent='';el('photo').hidden=true;el('crop').hidden=true;
-say('正在读取截图…');setBusy(true);return id;
+el('transferStatus').textContent='';say('正在读取截图…');setBusy(true);return id;
 }
 function loadImage(src,id){
 if(id!==loadId)return;
-var img=new Image();img.onerror=function(){if(id!==loadId)return;setBusy(false);say('无法读取图片，请重新截图或选择 PNG / JPG 图片。');};
+var img=new Image();img.onerror=function(){if(id!==loadId)return;setBusy(false);if(el('transferStatus').textContent)el('transferStatus').textContent+=' 图片解码失败，内容可能损坏。';say('无法读取图片，请重新截图或选择 PNG / JPG 图片。');};
 img.onload=function(){if(id!==loadId)return;try{
+if(el('transferStatus').textContent)el('transferStatus').textContent=el('transferStatus').textContent.replace('正在验证图片能否读取。','图片已成功读取。');
 if(!img.width||!img.height||img.width*img.height>40000000)throw Error('图片尺寸过大');
 var scale=Math.min(1,1080/img.width,2600/img.height),c=el('photo');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
 var ctx=c.getContext('2d');ctx.drawImage(img,0,0,c.width,c.height);frame=ctx.getImageData(0,0,c.width,c.height);sourceFrame=frame;photo();
@@ -20,7 +21,7 @@ say('已收到截图，正在定位和识别棋盘…');run({kind:'recognize',fr
 }
 function loadFile(f,id){if(!f)return;if(id===undefined)id=beginImport();if(id!==loadId)return;if(f.size>25*1024*1024){setBusy(false);say('图片过大，请选择小于 25 MB 的截图。');return;}
 var reader=new FileReader();reader.onerror=function(){if(id!==loadId)return;setBusy(false);say('图片读取失败，请重新选择。');};reader.onload=function(){loadImage(reader.result,id);};reader.readAsDataURL(f);}
-function loadText(text,id){if(id===undefined)id=beginImport();if(id!==loadId)return;try{var src=OrbImport.parse(text);if(!src)throw Error('没有找到截图，请复制图像或快捷指令生成的图片编码');loadImage(src,id);}catch(e){setBusy(false);say(e.message);}}
+function loadText(text,id){if(id===undefined)id=beginImport();if(id!==loadId)return;try{var checked=OrbImport.inspect(text);if(!checked)throw Error('没有找到截图，请复制图像或快捷指令生成的图片编码');el('transferStatus').textContent='传图检查：'+checked.type.toUpperCase()+'，收到 '+checked.received+' 个字符；'+(checked.repairs.length?'已规范化：'+checked.repairs.join('、'):'编码格式正常')+'。正在验证图片能否读取。';loadImage(checked.src,id);}catch(e){setBusy(false);el('transferStatus').textContent='传图检查未通过：'+e.message;el('pasteHelp').open=true;say('自动导入未完成，请点击粘贴截图，或在输入框长按粘贴。');}}
 function importHash(){if(location.hash.indexOf('#image=')!==0)return;var value=location.hash;
 try{history.replaceState(null,'',location.pathname+location.search);}catch(ignore){}
 loadText(value);}
