@@ -1,2 +1,2 @@
-importScripts('templates.js','core.js');
-onmessage=function(e){try{var d=e.data;postMessage({result:d.kind==='recognize'?OrbCore.recognize(d.frame,ORB_TEMPLATES):OrbCore.solve(d.board,d.mode)});}catch(err){postMessage({error:err.message||'处理失败'});}};
+importScripts('templates.js','core.js?v=03','photo.js?v=03');
+onmessage=function(e){try{var d=e.data;if(d.kind==='photo'){var frame=OrbPhoto.rectify(d.frame,d.corners);postMessage({result:{frame:frame,recognition:OrbPhoto.read(frame,ORB_TEMPLATES)}});return;}postMessage({result:d.kind==='recognize'?OrbCore.recognize(d.frame,ORB_TEMPLATES):OrbCore.solve(d.board,d.mode)});}catch(err){postMessage({error:err.message||'处理失败'});}};
